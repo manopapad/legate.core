@@ -14,6 +14,8 @@
 #
 from __future__ import annotations
 
+import os
+
 import weakref
 from typing import (
     TYPE_CHECKING,
@@ -805,13 +807,17 @@ class Storage:
         color_transform: Optional[Transform] = None,
     ) -> Optional[LegionPartition]:
         if self.kind is not RegionField:
+            print(f"{os.getpid()} NOT REGIONFIELD", flush=True)
             return None
+        print(f"{os.getpid()} IS REGIONFIELD", flush=True)
 
         assert isinstance(self.data, RegionField)
         assert color_shape is None or color_transform is not None
 
         if functor in self._partitions and color_shape is None:
+            print(f"{os.getpid()} CASE 1: type(functor) = {type(functor)}, functor in self._partitions = {functor in self._partitions}, color_shape = {color_shape}", flush=True)
             return self._partitions[functor]
+        print(f"{os.getpid()} CASE 2: type(functor) = {type(functor)}, functor in self._partitions = {functor in self._partitions}, color_shape = {color_shape}", flush=True)
 
         part = functor.construct(
             self.data.region,
@@ -873,6 +879,7 @@ class StorePartition:
     ) -> Proj:
         part = self._storage_partition.find_or_create_legion_partition()
         if part is not None:
+            print(f"{os.getpid()} PART NOT NONE", flush=True)
             if isinstance(proj_fn, int):
                 proj_id = proj_fn
             else:
@@ -881,6 +888,7 @@ class StorePartition:
                     assert proj_id == 0
                     proj_id = self._runtime.get_delinearize_functor()
         else:
+            print(f"{os.getpid()} PART IS NONE", flush=True)
             proj_id = 0
         return self._partition.requirement(part, proj_id)
 

@@ -23,6 +23,7 @@ from .field import FieldID
 from .future import Future
 from .geometry import Domain
 from .pending import _pending_unordered
+import os
 
 if TYPE_CHECKING:
     from . import IndexPartition, Rect
@@ -255,6 +256,7 @@ class FieldSpace:
                 size_or_type, field_id=field_id
             )
         elif isinstance(size_or_type, int):
+            print(f"{os.getpid()} ALLOCATE_FIELD_INT", flush=True)
             field_id = legion.legion_field_allocator_allocate_field(
                 self.alloc, size_or_type, field_id
             )
@@ -279,6 +281,7 @@ class FieldSpace:
                 + str(LEGATE_MAX_FIELDS)
                 + " in field space"
             )
+        print(f"{os.getpid()} ALLOCATE_FIELD_CTYPE", flush=True)
         field_id = legion.legion_field_allocator_allocate_field(
             self.alloc, ffi.sizeof(ctype), field_id
         )
@@ -301,6 +304,7 @@ class FieldSpace:
                 + str(LEGATE_MAX_FIELDS)
                 + " in field space"
             )
+        print(f"{os.getpid()} ALLOCATE_FIELD_DTYPE", flush=True)
         field_id = legion.legion_field_allocator_allocate_field(
             self.alloc, dtype.size, field_id
         )
@@ -323,6 +327,7 @@ class FieldSpace:
                 + str(LEGATE_MAX_FIELDS)
                 + " in field space"
             )
+        print(f"{os.getpid()} ALLOCATE_FIELD_FROM_FUTURE", flush=True)
         field_id = legion.legion_field_allocator_allocate_field_future(
             self.alloc, future.handle, field_id
         )

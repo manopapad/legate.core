@@ -25,6 +25,7 @@ from .partition import ImagePartition, Replicate, Weighted
 from .shape import Shape
 from .store import Store, StorePartition
 from .utils import OrderedSet, capture_traceback
+import os
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -530,12 +531,14 @@ class AutoTask(AutoOperation, Task):
             return req, tag, store_part
 
         for store, part_symb in zip(self._inputs, self._input_parts):
+            print(f"{os.getpid()} PREPARE_TASK {self._task_id} INPUT", flush=True)
             req, tag, _ = get_requirement(store, part_symb)
             launcher.add_input(store, req, tag=tag)
 
         for store, part_symb in zip(self._outputs, self._output_parts):
             if store.unbound:
                 continue
+            print(f"{os.getpid()} PREPARE_TASK {self._task_id} BOUND-OUTPUT", flush=True)
             req, tag, store_part = get_requirement(store, part_symb)
             launcher.add_output(store, req, tag=tag)
             # We update the key partition of a store only when it gets updated
@@ -544,6 +547,7 @@ class AutoTask(AutoOperation, Task):
         for ((store, redop), part_symb) in zip(
             self._reductions, self._reduction_parts
         ):
+            print(f"{os.getpid()} PREPARE_TASK {self._task_id} REDUCTION", flush=True)
             req, tag, store_part = get_requirement(store, part_symb)
 
             can_read_write = store_part.is_disjoint_for(strategy.launch_domain)
@@ -556,6 +560,7 @@ class AutoTask(AutoOperation, Task):
         for (store, part_symb) in zip(self._outputs, self._output_parts):
             if not store.unbound:
                 continue
+            print(f"{os.getpid()} PREPARE_TASK {self._task_id} UNBOUND-OUTPUT", flush=True)
             fspace = strategy.get_field_space(part_symb)
             field_id = fspace.allocate_field(store.type)
             launcher.add_unbound_output(store, fspace, field_id)

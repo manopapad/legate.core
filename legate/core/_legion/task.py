@@ -23,6 +23,7 @@ from .partition import Partition
 from .pending import _pending_deletions
 from .region import Region
 from .util import Dispatchable, FieldID, dispatch
+import os
 
 if TYPE_CHECKING:
     from . import FieldListLike, IndexSpace, OutputRegion
@@ -54,6 +55,7 @@ class Task(Dispatchable[Future]):
         tag : int
             Tag to pass to the mapper to provide calling context
         """
+        self.task_id = task_id
         if data:
             if size <= 0:
                 raise ValueError("'size' must be positive")
@@ -443,6 +445,7 @@ class Task(Dispatchable[Future]):
         Future that will complete when the task is done and carries
         the return value of the task if any
         """
+        print(f"{os.getpid()} LAUNCH {self.task_id}", flush=True)
         num_outputs = len(self.outputs)
         if num_outputs == 0:
             return Future(
@@ -501,6 +504,7 @@ class IndexTask(Dispatchable[Union[Future, FutureMap]]):
         tag : int
             Tag to pass to the mapper to provide calling context
         """
+        self.task_id = task_id
         if argmap is not None:
             self.argmap = None
         else:
@@ -1043,6 +1047,7 @@ class IndexTask(Dispatchable[Union[Future, FutureMap]]):
         -------
         FutureMap if redop==0 else Future
         """
+        print(f"{os.getpid()} LAUNCH {self.task_id}", flush=True)
         if redop == 0:
             num_outputs = len(self.outputs)
             if num_outputs == 0:
