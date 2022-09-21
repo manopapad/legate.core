@@ -281,7 +281,8 @@ class BaseMapper : public Legion::Mapping::Mapper, public LegateMapper {
                      Legion::ReductionOpID redop = 0);
   void filter_failed_acquires(std::vector<Legion::Mapping::PhysicalInstance>& needed_acquires,
                               std::set<Legion::Mapping::PhysicalInstance>& failed_acquires);
-  void report_failed_mapping(const Legion::Mappable& mappable,
+  void report_failed_mapping(const Legion::Mapping::MapperContext ctx,
+                             const Legion::Mappable& mappable,
                              unsigned index,
                              Legion::Memory target_memory,
                              Legion::ReductionOpID redop);

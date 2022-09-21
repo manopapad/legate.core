@@ -18,6 +18,7 @@
 #include <sstream>
 
 #include "legion/legion_mapping.h"
+#include "mappers/mapping_utilities.h"
 
 #include "core/data/store.h"
 #include "core/mapping/base_mapper.h"
@@ -773,7 +774,7 @@ bool BaseMapper::map_legate_store(const MapperContext ctx,
 
     if (!runtime->create_physical_instance(
           ctx, target_memory, layout_constraints, regions, result, true /*acquire*/))
-      report_failed_mapping(mappable, mapping.requirement_index(), target_memory, redop);
+      report_failed_mapping(ctx, mappable, mapping.requirement_index(), target_memory, redop);
     // We already did the acquire
     return false;
   }
@@ -874,7 +875,8 @@ bool BaseMapper::map_legate_store(const MapperContext ctx,
 
   // If we make it here then we failed entirely
   auto req_indices = mapping.requirement_indices();
-  for (auto req_idx : req_indices) report_failed_mapping(mappable, req_idx, target_memory, redop);
+  for (auto req_idx : req_indices)
+    report_failed_mapping(ctx, mappable, req_idx, target_memory, redop);
   return true;
 }
 
@@ -912,7 +914,7 @@ bool BaseMapper::map_raw_array(const MapperContext ctx,
     layout_constraints.add_constraint(FieldConstraint(fields, true /*contiguous*/));
     if (!runtime->create_physical_instance(
           ctx, target_memory, layout_constraints, regions, result, true /*acquire*/))
-      report_failed_mapping(mappable, index, target_memory, redop);
+      report_failed_mapping(ctx, mappable, index, target_memory, redop);
     // We already did the acquire
     return false;
   }
@@ -1034,7 +1036,7 @@ bool BaseMapper::map_raw_array(const MapperContext ctx,
     return true;
   }
   // If we make it here then we failed entirely
-  report_failed_mapping(mappable, index, target_memory, redop);
+  report_failed_mapping(ctx, mappable, index, target_memory, redop);
   return true;
 }
 
@@ -1050,7 +1052,8 @@ void BaseMapper::filter_failed_acquires(std::vector<PhysicalInstance>& needed_ac
   needed_acquires.clear();
 }
 
-void BaseMapper::report_failed_mapping(const Mappable& mappable,
+void BaseMapper::report_failed_mapping(const MapperContext ctx,
+                                       const Mappable& mappable,
                                        uint32_t index,
                                        Memory target_memory,
                                        ReductionOpID redop)
@@ -1144,6 +1147,15 @@ void BaseMapper::report_failed_mapping(const Mappable& mappable,
     }
     default: LEGATE_ABORT;  // should never get here
   }
+  std::vector<PhysicalInstance> valid_instances;
+  LayoutConstraintSet no_constraints;
+  std::vector<LogicalRegion> any_region;
+  // TODO: Probably need to drop our lock, and/or enable_reentrant
+  runtime->find_physical_instances(ctx, target_memory, no_constraints, any_region, valid_instances);
+  logger.error() << "Current valid instances in memory " << target_memory << ":";
+  for (PhysicalInstance inst : valid_instances)
+    logger.error() << Utilities::to_string(runtime, ctx, inst);
+  // TODO: also report total instance sizes + memory size
   LEGATE_ABORT;
 }
 
