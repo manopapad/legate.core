@@ -874,6 +874,8 @@ bool BaseMapper::map_legate_store(const MapperContext ctx,
   runtime->enable_reentrant(ctx);
 
   // If we make it here then we failed entirely
+  // Release the lock, otherwise the instances query in report_failed_mapping hangs.
+  lock.release();
   auto req_indices = mapping.requirement_indices();
   for (auto req_idx : req_indices)
     report_failed_mapping(ctx, mappable, req_idx, target_memory, redop);
@@ -1035,7 +1037,10 @@ bool BaseMapper::map_raw_array(const MapperContext ctx,
                region, fid, target_memory, result, Strictness::strict, false)) {
     return true;
   }
+
   // If we make it here then we failed entirely
+  // Release the lock, otherwise the instances query in report_failed_mapping hangs.
+  lock.release();
   report_failed_mapping(ctx, mappable, index, target_memory, redop);
   return true;
 }
@@ -1150,7 +1155,6 @@ void BaseMapper::report_failed_mapping(const MapperContext ctx,
   std::vector<PhysicalInstance> valid_instances;
   LayoutConstraintSet no_constraints;
   std::vector<LogicalRegion> any_region;
-  // TODO: Probably need to drop our lock, and/or enable_reentrant
   runtime->find_physical_instances(ctx, target_memory, no_constraints, any_region, valid_instances);
   logger.error() << "Current valid instances in memory " << target_memory << ":";
   for (PhysicalInstance inst : valid_instances)
