@@ -148,7 +148,7 @@ class ScalarArg:
         return f"ScalarArg({self._value}, {self._dtype}, {self._untyped})"
 
 
-class FutureStoreArg:
+class FutureStoreArg(LauncherArg):
     def __init__(
         self, store: Store, read_only: bool, has_storage: bool, redop: int
     ) -> None:
@@ -169,7 +169,7 @@ class FutureStoreArg:
         return f"FutureStoreArg({self._store})"
 
 
-class RegionFieldArg:
+class RegionFieldArg(LauncherArg):
     def __init__(
         self,
         indexer: RequirementIndexer,
@@ -958,6 +958,14 @@ class TaskLauncher:
 
         assert len(self._comms) == 0
 
+        from .store import RegionField
+
+        for arg in self._inputs + self._outputs + self._reductions:
+            if not isinstance(arg, RegionFieldArg):
+                continue
+            assert arg._store.kind is RegionField
+            arg._store.get_inline_allocation(self._context)
+
         task = SingleTask(
             self.legion_task_id,
             argbuf.get_string(),
@@ -982,6 +990,7 @@ class TaskLauncher:
             task.set_sharding_space(self._sharding_space)
         if self._point is not None:
             task.set_point(self._point)
+        task.set_enable_inlinling(True)
         return task
 
     def execute(self, launch_domain: Rect) -> FutureMap:

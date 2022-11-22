@@ -418,6 +418,11 @@ class Task(Dispatchable[Future]):
             self.launcher, space.handle
         )
 
+    def set_enable_inlinling(self, enable_inlining: bool) -> None:
+        legion.legion_task_launcher_set_enable_inlining(
+            self.launcher, enable_inlining
+        )
+
     def set_local_function(self, local: bool) -> None:
         """
         Set a flag indicating whether this task can be considered a local

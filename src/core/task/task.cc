@@ -32,25 +32,27 @@ void LegateTaskRegistrar::record_variant(TaskID tid,
   assert((kind == Processor::LOC_PROC) || (kind == Processor::TOC_PROC) ||
          (kind == Processor::OMP_PROC));
 
-  // Buffer these up until we can do our actual registration with the runtime
-  pending_task_variants_.push_back(PendingTaskVariant(tid,
-                                                      false /*global*/,
-                                                      (kind == Processor::LOC_PROC)   ? "CPU"
-                                                      : (kind == Processor::TOC_PROC) ? "GPU"
-                                                                                      : "OpenMP",
-                                                      task_name,
-                                                      descriptor,
-                                                      var,
-                                                      options.return_size));
+  auto handle = [&](Processor::Kind _kind, LegateVariantCode _var, const char* var_name) {
+    // Buffer these up until we can do our actual registration with the runtime
+    pending_task_variants_.push_back(PendingTaskVariant(
+      tid, false /*global*/, var_name, task_name, descriptor, _var, options.return_size));
 
-  auto& registrar = pending_task_variants_.back();
-  registrar.execution_constraints.swap(execution_constraints);
-  registrar.layout_constraints.swap(layout_constraints);
-  registrar.add_constraint(ProcessorConstraint(kind));
-  registrar.set_leaf(options.leaf);
-  registrar.set_inner(options.inner);
-  registrar.set_idempotent(options.idempotent);
-  registrar.set_concurrent(options.concurrent);
+    auto& registrar = pending_task_variants_.back();
+    registrar.execution_constraints.swap(execution_constraints);
+    registrar.layout_constraints.swap(layout_constraints);
+    registrar.add_constraint(ProcessorConstraint(_kind));
+    registrar.set_leaf(options.leaf);
+    registrar.set_inner(options.inner);
+    registrar.set_idempotent(options.idempotent);
+    registrar.set_concurrent(options.concurrent);
+  };
+
+  handle(kind,
+         var,
+         (kind == Processor::LOC_PROC)   ? "CPU"
+         : (kind == Processor::TOC_PROC) ? "GPU"
+                                         : "OpenMP");
+  if (kind == Processor::LOC_PROC) handle(Processor::PY_PROC, (legate_core_variant_t)4, "PY");
 }
 
 void LegateTaskRegistrar::register_all_tasks(Runtime* runtime, LibraryContext& context)

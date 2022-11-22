@@ -124,6 +124,8 @@ class RegionField:
     def __del__(self) -> None:
         if self.attached_alloc is not None:
             self.detach_external_allocation(unordered=True, defer=True)
+        while self.physical_region_refs > 0:
+            self.decrement_inline_mapped_ref_count()
 
     @staticmethod
     def create(

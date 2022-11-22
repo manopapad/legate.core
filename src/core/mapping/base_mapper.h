@@ -357,6 +357,8 @@ class BaseMapper : public Legion::Mapping::Mapper, public LegateMapper {
   std::vector<Legion::Processor> local_cpus;
   std::vector<Legion::Processor> local_gpus;
   std::vector<Legion::Processor> local_omps;  // OpenMP processors
+  Legion::Processor local_py;
+
  protected:
   Legion::Memory local_system_memory, local_zerocopy_memory;
   std::map<Legion::Processor, Legion::Memory> local_frame_buffers;

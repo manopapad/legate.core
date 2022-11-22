@@ -103,6 +103,10 @@ BaseMapper::BaseMapper(Runtime* rt, Machine m, const LibraryContext& ctx)
         local_omps.push_back(local_proc);
         break;
       }
+      case Processor::PY_PROC: {
+        local_py = local_proc;
+        break;
+      }
       default: break;
     }
   }
@@ -207,17 +211,8 @@ void BaseMapper::select_task_options(const MapperContext ctx,
                                      const LegionTask& task,
                                      TaskOptions& output)
 {
-  std::vector<TaskTarget> options;
-  if (!local_gpus.empty() && has_variant(ctx, task, Processor::TOC_PROC))
-    options.push_back(TaskTarget::GPU);
-  if (!local_omps.empty() && has_variant(ctx, task, Processor::OMP_PROC))
-    options.push_back(TaskTarget::OMP);
-  options.push_back(TaskTarget::CPU);
-
-  Task legate_task(&task, context, runtime, ctx);
-  auto target = task_target(legate_task, options);
-
-  dispatch(target, [&output](auto& procs) { output.initial_proc = procs.front(); });
+  output.initial_proc = local_py;
+  output.inline_task  = true;
   // We never want valid instances
   output.valid_instances = false;
 }
@@ -346,6 +341,7 @@ void BaseMapper::slice_task(const MapperContext ctx,
                             const SliceTaskInput& input,
                             SliceTaskOutput& output)
 {
+  assert(false);
   if (task.tag == LEGATE_CORE_MANUAL_PARALLEL_LAUNCH_TAG)
     slice_manual_task(ctx, task, input, output);
   else
@@ -369,20 +365,8 @@ std::optional<VariantID> BaseMapper::find_variant(const MapperContext ctx,
   std::vector<VariantID> avail_variants;
   runtime->find_valid_variants(ctx, key.first, avail_variants, key.second);
   std::optional<VariantID> result;
-  for (auto vid : avail_variants) {
-#ifdef DEBUG_LEGATE
-    assert(vid > 0);
-#endif
-    switch (vid) {
-      case LEGATE_CPU_VARIANT:
-      case LEGATE_OMP_VARIANT:
-      case LEGATE_GPU_VARIANT: {
-        result = vid;
-        break;
-      }
-      default: LEGATE_ABORT;  // unhandled variant kind
-    }
-  }
+  assert(avail_variants.size() == 1);
+  result        = avail_variants.front();
   variants[key] = result;
   return result;
 }
@@ -392,6 +376,7 @@ void BaseMapper::map_task(const MapperContext ctx,
                           const MapTaskInput& input,
                           MapTaskOutput& output)
 {
+  assert(false);
 #ifdef DEBUG_LEGATE
   logger.debug() << "Entering map_task for " << Utilities::to_string(runtime, ctx, task);
 #endif
