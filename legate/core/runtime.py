@@ -31,6 +31,7 @@ from . import ffi  # Make sure we only have one ffi instance
 from . import (
     Fence,
     FieldSpace,
+    Fill,
     Future,
     FutureMap,
     IndexSpace,
@@ -370,6 +371,16 @@ class FieldManager:
     def free_field(
         self, region: Region, field_id: int, ordered: bool = False
     ) -> None:
+        buf = ffi.new("char[]", self.field_size)
+        fut = Future.from_buffer(self.runtime.legion_runtime, ffi.buffer(buf))
+        fill = Fill(
+            region,
+            region,
+            field_id,
+            fut,
+            mapper=self.runtime.core_context.mapper_id,
+        )
+        fill.launch(self.runtime.legion_runtime, self.runtime.legion_context)
         self.free_fields.append((region, field_id))
         region_manager = self.runtime.find_region_manager(region)
         if region_manager.decrease_active_field_count():
