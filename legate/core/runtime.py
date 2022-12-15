@@ -562,16 +562,14 @@ class AttachmentManager:
         alloc: Attachable,
         detach: Union[Detach, IndexDetach],
         defer: bool = False,
-        previously_deferred: bool = False,
     ) -> None:
-        # If the detachment was previously deferred, then we don't
-        # need to remove the allocation from the map again.
-        if not previously_deferred:
-            self._remove_allocation(alloc)
         if defer:
             # If we need to defer this until later do that now
             self._deferred_detachments.append((alloc, detach))
             return
+        # If the detachment was previously deferred, then we don't
+        # need to remove the allocation from the map again.
+        self._remove_allocation(alloc)
         future = self._runtime.dispatch(detach)
         # Dangle a reference to the field off the future to prevent the
         # field from being recycled until the detach is done
@@ -597,9 +595,7 @@ class AttachmentManager:
         detachments = self._deferred_detachments
         self._deferred_detachments = list()
         for alloc, detach in detachments:
-            self.detach_external_allocation(
-                alloc, detach, defer=False, previously_deferred=True
-            )
+            self.detach_external_allocation(alloc, detach, defer=False)
 
     def prune_detachments(self) -> None:
         to_remove = []
